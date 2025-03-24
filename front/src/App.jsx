@@ -157,7 +157,7 @@ function App() {
             <input
               type="text"
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              onChange={(e) => setJoinCode(e.target.value)}
               placeholder="Enter Party Code"
               maxLength={6}
             />
