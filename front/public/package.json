@@ -4,9 +4,13 @@
   "description": "Frontend for the Fightboat game",
   "main": "index.html",
   "scripts": {
-    "start": "serve ."
+    "start": "serve . -s",
+    "build": "echo 'No build step needed'"
   },
   "dependencies": {
     "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 } 
