@@ -1,147 +1,130 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import GameBoard from './components/GameBoard'
 import './App.css'
+import socket from './connection'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'https://battleship-q6f4.onrender.com'
 
 function App() {
-  const [gameState, setGameState] = useState('initial')
-  const [error, setError] = useState(null)
-  const [partyCode, setPartyCode] = useState(null)
+  const [gameState, setGameState] = useState('menu')
+  const [error, setError] = useState('')
+  const [partyCode, setPartyCode] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [isPlayerTurn, setIsPlayerTurn] = useState(false)
-  const [playerBoard, setPlayerBoard] = useState([])
-  const [opponentBoard, setOpponentBoard] = useState([])
+  const [playerBoard, setPlayerBoard] = useState(Array(10).fill().map(() => Array(10).fill(null)))
+  const [opponentBoard, setOpponentBoard] = useState(Array(10).fill().map(() => Array(10).fill(null)))
   const [isConnected, setIsConnected] = useState(false)
   const [isSetupPhase, setIsSetupPhase] = useState(false)
   const [placedShips, setPlacedShips] = useState(0)
   const [copyButtonText, setCopyButtonText] = useState('Copy Code')
 
   useEffect(() => {
-    function waitForSocket(callback) {
-      if (window.socket) {
-        callback();
-      } else {
-        setTimeout(() => waitForSocket(callback), 100);
+    // Wait for socket to be ready
+    const waitForSocket = () => {
+      return new Promise((resolve) => {
+        if (window.socket) {
+          resolve(window.socket)
+        } else {
+          const checkSocket = setInterval(() => {
+            if (window.socket) {
+              clearInterval(checkSocket)
+              resolve(window.socket)
+            }
+          }, 100)
+        }
+      })
+    }
+
+    const setupSocket = async () => {
+      try {
+        const socket = await waitForSocket()
+        
+        socket.on('connect', () => {
+          console.log('Connected to server with socket ID:', socket.id)
+          setIsConnected(true)
+          setError(null)
+        })
+
+        socket.on('disconnect', () => {
+          console.log('Disconnected from server')
+          setIsConnected(false)
+        })
+
+        socket.on('partyCreated', (code) => {
+          console.log('Party created with code:', code)
+          setPartyCode(code)
+          setGameState('waiting')
+        })
+
+        socket.on('partyJoined', (code) => {
+          console.log('Successfully joined party:', code)
+          setPartyCode(code)
+          setGameState('setup')
+        })
+
+        socket.on('gameStart', () => {
+          console.log('Game started')
+          setGameState('playing')
+        })
+
+        socket.on('turnUpdate', ({ isPlayerTurn }) => {
+          console.log('Turn updated:', isPlayerTurn)
+          setIsPlayerTurn(isPlayerTurn)
+        })
+
+        socket.on('boardUpdate', ({ playerBoard, opponentBoard }) => {
+          console.log('Board updated')
+          setPlayerBoard(playerBoard)
+          setOpponentBoard(opponentBoard)
+        })
+
+        socket.on('error', (error) => {
+          console.error('Socket error:', error)
+          setError(error)
+        })
+      } catch (error) {
+        console.error('Error setting up socket:', error)
+        setError('Failed to connect to server')
       }
     }
 
-    waitForSocket(() => {
-      const socket = window.socket;
-      
-      socket.on('connect', () => {
-        console.log('Connected to server')
-        setIsConnected(true)
-        setError(null)
-      })
-
-      socket.on('disconnect', () => {
-        console.log('Disconnected from server')
-        setIsConnected(false)
-      })
-
-      socket.on('createParty', (data) => {
-        console.log('Received createParty response:', data)
-        if (data.status === "Success" && data.matchId) {
-          console.log('Setting party code:', data.matchId)
-          setPartyCode(data.matchId)
-          setGameState('waiting')
-        } else {
-          console.error('Invalid createParty response:', data)
-          setError('Failed to create game. Please try again.')
-        }
-      })
-
-      socket.on('joinParty', (data) => {
-        console.log('Received joinParty response:', data)
-        if (data.status === "Success") {
-          setGameState('ready')
-          setError(null)
-        } else {
-          console.error('Join party failed:', data)
-          setError(data.reason || 'Failed to join game. Please check the code and try again.')
-          setGameState('initial')
-          setJoinCode('')
-        }
-      })
-
-      socket.on('startRound', (data) => {
-        console.log('Received startRound response:', data)
-        if (data.status === "Success") {
-          setGameState('playing')
-          setIsSetupPhase(true)
-          setPlayerBoard(Array(10).fill().map(() => Array(10).fill('empty')))
-          setOpponentBoard(Array(10).fill().map(() => Array(10).fill('empty')))
-        }
-      })
-
-      socket.on('turnUpdate', (data) => {
-        if (data.status === "Success") {
-          setIsPlayerTurn(data.isPlayerTurn)
-          if (data.playerBoard) setPlayerBoard(data.playerBoard)
-          if (data.opponentBoard) setOpponentBoard(data.opponentBoard)
-        }
-      })
-    })
+    setupSocket()
 
     return () => {
-      // No need to close socket as it's managed by the connection.js script
+      if (window.socket) {
+        window.socket.disconnect()
+      }
     }
   }, [])
 
-  const handleCreateParty = () => {
-    if (window.socket) {
-      console.log('Emitting tryCreateParty')
-      window.socket.emit('tryCreateParty')
-      setGameState('new')
-    } else {
-      setError('Not connected to server. Please refresh the page.')
+  const handleCreateParty = async () => {
+    try {
+      console.log('Creating party...')
+      window.socket.emit('createParty')
+    } catch (error) {
+      console.error('Error creating party:', error)
+      setError('Failed to create party')
     }
   }
 
-  const handleJoinParty = () => {
-    if (!window.socket) {
-      console.error('Socket not connected')
-      setError('Not connected to server. Please refresh the page.')
-      return
-    }
-
-    if (!joinCode) {
-      setError('Please enter a valid party code.')
-      return
-    }
-
-    const code = joinCode.trim()
-    console.log('Attempting to join party with code:', code)
-    
+  const handleJoinParty = async (code) => {
     try {
+      console.log('Attempting to join party:', code)
       window.socket.emit('tryJoinParty', code)
     } catch (error) {
-      console.error('Error emitting tryJoinParty:', error)
-      setError('Failed to join game. Please try again.')
+      console.error('Error joining party:', error)
+      setError('Failed to join party')
     }
   }
 
-  const handleStartGame = () => {
-    if (window.socket) {
-      window.socket.emit('tryStartRound')
-    }
-  }
-
-  const handleCellClick = (row, col) => {
-    if (window.socket && isPlayerTurn) {
-      window.socket.emit('makeMove', { row, col })
-    }
-  }
-
-  const handleShipPlacement = (newBoard, shipName) => {
-    setPlayerBoard(newBoard)
-    setPlacedShips(prev => prev + 1)
+  const handleCellClick = (row, col, isPlayerBoard) => {
+    if (!isPlayerTurn) return
     
-    if (placedShips + 1 === 5) {
-      setIsSetupPhase(false)
-      window.socket.emit('shipsPlaced', { board: newBoard })
-    }
+    window.socket.emit('makeMove', { row, col })
+  }
+
+  const handleShipPlacement = (ships) => {
+    window.socket.emit('shipsPlaced', ships)
   }
 
   const handleCopyCode = async () => {
@@ -169,7 +152,7 @@ function App() {
       
       {error && <div className="error">{error}</div>}
       
-      {gameState === 'initial' && (
+      {gameState === 'menu' && (
         <div className="menu">
           <button onClick={handleCreateParty}>Create New Game</button>
           <div className="join-game">
@@ -181,33 +164,8 @@ function App() {
               maxLength={6}
               autoComplete="off"
             />
-            <button onClick={handleJoinParty}>Join Game</button>
+            <button onClick={() => handleJoinParty(joinCode)}>Join Game</button>
           </div>
-        </div>
-      )}
-
-      {gameState === 'new' && (
-        <div className="waiting">
-          <h2>Game Created!</h2>
-          {partyCode ? (
-            <div className="party-code">
-              <h3>Share this code with your opponent:</h3>
-              <div className="code">{partyCode}</div>
-              <button className="copy-button" onClick={handleCopyCode}>
-                {copyButtonText}
-              </button>
-            </div>
-          ) : (
-            <p>Generating party code...</p>
-          )}
-          <p>Waiting for opponent to join...</p>
-        </div>
-      )}
-
-      {gameState === 'join' && (
-        <div className="waiting">
-          <h2>Joining Game...</h2>
-          <p>Please wait while we connect you to the game.</p>
         </div>
       )}
 
@@ -229,10 +187,18 @@ function App() {
         </div>
       )}
 
-      {gameState === 'ready' && (
-        <div className="ready">
-          <h2>Game Ready!</h2>
-          <button onClick={handleStartGame}>Start Game</button>
+      {gameState === 'setup' && (
+        <div className="setup">
+          <h2>Setup Your Ships</h2>
+          <GameBoard
+            isPlayerBoard={true}
+            board={playerBoard}
+            isSetupPhase={true}
+            onShipPlacement={handleShipPlacement}
+            onCellClick={(row, col) => handleCellClick(row, col, true)}
+          />
+          <p>Placed Ships: {placedShips}/5</p>
+          <button onClick={() => setGameState('playing')}>Start Game</button>
         </div>
       )}
 
@@ -253,13 +219,13 @@ function App() {
               board={playerBoard}
               isSetupPhase={isSetupPhase}
               onShipPlacement={handleShipPlacement}
-              onCellClick={() => {}}
+              onCellClick={(row, col) => handleCellClick(row, col, true)}
             />
             <GameBoard
               isPlayerBoard={false}
               board={opponentBoard}
               isSetupPhase={false}
-              onCellClick={handleCellClick}
+              onCellClick={(row, col) => handleCellClick(row, col, false)}
             />
           </div>
         </div>
