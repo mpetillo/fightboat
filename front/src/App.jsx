@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
-import { io } from 'socket.io-client'
 import GameBoard from './components/GameBoard'
 import './App.css'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'https://battleship-q6f4.onrender.com'
 
 function App() {
-  const [socket, setSocket] = useState(null)
   const [gameState, setGameState] = useState('initial')
   const [error, setError] = useState(null)
   const [partyCode, setPartyCode] = useState(null)
@@ -20,95 +18,81 @@ function App() {
   const [copyButtonText, setCopyButtonText] = useState('Copy Code')
 
   useEffect(() => {
-    const newSocket = io(SERVER_URL, {
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      transports: ['websocket']
-    })
-
-    newSocket.on('connect', () => {
-      console.log('Connected to server')
-      console.log('Socket ID:', newSocket.id)
-      setIsConnected(true)
-      setError(null)
-    })
-
-    newSocket.on('disconnect', () => {
-      console.log('Disconnected from server')
-      console.log('Last socket ID:', newSocket.id)
-      setIsConnected(false)
-    })
-
-    newSocket.on('connect_error', (error) => {
-      console.error('Connection error:', error)
-      setError('Failed to connect to server. Please check your connection and try again.')
-    })
-
-    newSocket.on('error', (error) => {
-      console.error('Socket error:', error)
-      setError('Connection error occurred. Please try again.')
-    })
-
-    newSocket.on('createParty', (data) => {
-      console.log('Received createParty response:', data)
-      if (data.status === "Success" && data.matchId) {
-        console.log('Setting party code:', data.matchId)
-        console.log('Party code length:', data.matchId.length)
-        console.log('Party code characters:', [...data.matchId].map(c => c.charCodeAt(0)))
-        setPartyCode(data.matchId)
-        setGameState('waiting')
+    function waitForSocket(callback) {
+      if (window.socket) {
+        callback();
       } else {
-        console.error('Invalid createParty response:', data)
-        setError('Failed to create game. Please try again.')
+        setTimeout(() => waitForSocket(callback), 100);
       }
-    })
+    }
 
-    newSocket.on('joinParty', (data) => {
-      console.log('Received joinParty response:', data)
-      console.log('Current socket ID:', newSocket.id)
-      if (data.status === "Success") {
-        setGameState('ready')
+    waitForSocket(() => {
+      const socket = window.socket;
+      
+      socket.on('connect', () => {
+        console.log('Connected to server')
+        setIsConnected(true)
         setError(null)
-      } else {
-        console.error('Join party failed:', data)
-        setError(data.reason || 'Failed to join game. Please check the code and try again.')
-        setGameState('initial')
-        setJoinCode('') // Clear the join code on failure
-      }
-    })
+      })
 
-    newSocket.on('startRound', (data) => {
-      console.log('Received startRound response:', data)
-      if (data.status === "Success") {
-        setGameState('playing')
-        setIsSetupPhase(true)
-        // Initialize empty boards
-        setPlayerBoard(Array(10).fill().map(() => Array(10).fill('empty')))
-        setOpponentBoard(Array(10).fill().map(() => Array(10).fill('empty')))
-      }
-    })
+      socket.on('disconnect', () => {
+        console.log('Disconnected from server')
+        setIsConnected(false)
+      })
 
-    newSocket.on('turnUpdate', (data) => {
-      if (data.status === "Success") {
-        setIsPlayerTurn(data.isPlayerTurn)
-        if (data.playerBoard) setPlayerBoard(data.playerBoard)
-        if (data.opponentBoard) setOpponentBoard(data.opponentBoard)
-      }
-    })
+      socket.on('createParty', (data) => {
+        console.log('Received createParty response:', data)
+        if (data.status === "Success" && data.matchId) {
+          console.log('Setting party code:', data.matchId)
+          setPartyCode(data.matchId)
+          setGameState('waiting')
+        } else {
+          console.error('Invalid createParty response:', data)
+          setError('Failed to create game. Please try again.')
+        }
+      })
 
-    setSocket(newSocket)
+      socket.on('joinParty', (data) => {
+        console.log('Received joinParty response:', data)
+        if (data.status === "Success") {
+          setGameState('ready')
+          setError(null)
+        } else {
+          console.error('Join party failed:', data)
+          setError(data.reason || 'Failed to join game. Please check the code and try again.')
+          setGameState('initial')
+          setJoinCode('')
+        }
+      })
+
+      socket.on('startRound', (data) => {
+        console.log('Received startRound response:', data)
+        if (data.status === "Success") {
+          setGameState('playing')
+          setIsSetupPhase(true)
+          setPlayerBoard(Array(10).fill().map(() => Array(10).fill('empty')))
+          setOpponentBoard(Array(10).fill().map(() => Array(10).fill('empty')))
+        }
+      })
+
+      socket.on('turnUpdate', (data) => {
+        if (data.status === "Success") {
+          setIsPlayerTurn(data.isPlayerTurn)
+          if (data.playerBoard) setPlayerBoard(data.playerBoard)
+          if (data.opponentBoard) setOpponentBoard(data.opponentBoard)
+        }
+      })
+    })
 
     return () => {
-      console.log('Cleaning up socket connection')
-      newSocket.close()
+      // No need to close socket as it's managed by the connection.js script
     }
   }, [])
 
   const handleCreateParty = () => {
-    if (socket) {
+    if (window.socket) {
       console.log('Emitting tryCreateParty')
-      socket.emit('tryCreateParty')
+      window.socket.emit('tryCreateParty')
       setGameState('new')
     } else {
       setError('Not connected to server. Please refresh the page.')
@@ -116,7 +100,7 @@ function App() {
   }
 
   const handleJoinParty = () => {
-    if (!socket) {
+    if (!window.socket) {
       console.error('Socket not connected')
       setError('Not connected to server. Please refresh the page.')
       return
@@ -129,14 +113,9 @@ function App() {
 
     const code = joinCode.trim()
     console.log('Attempting to join party with code:', code)
-    console.log('Socket connected:', socket.connected)
-    console.log('Socket ID:', socket.id)
-    console.log('Code length:', code.length)
-    console.log('Code characters:', [...code].map(c => c.charCodeAt(0)))
     
     try {
-      socket.emit('tryJoinParty', code)
-      setGameState('join')
+      window.socket.emit('tryJoinParty', code)
     } catch (error) {
       console.error('Error emitting tryJoinParty:', error)
       setError('Failed to join game. Please try again.')
@@ -144,14 +123,14 @@ function App() {
   }
 
   const handleStartGame = () => {
-    if (socket) {
-      socket.emit('tryStartRound')
+    if (window.socket) {
+      window.socket.emit('tryStartRound')
     }
   }
 
   const handleCellClick = (row, col) => {
-    if (socket && isPlayerTurn) {
-      socket.emit('makeMove', { row, col })
+    if (window.socket && isPlayerTurn) {
+      window.socket.emit('makeMove', { row, col })
     }
   }
 
@@ -159,10 +138,9 @@ function App() {
     setPlayerBoard(newBoard)
     setPlacedShips(prev => prev + 1)
     
-    // If all ships are placed (5 ships), end setup phase
     if (placedShips + 1 === 5) {
       setIsSetupPhase(false)
-      socket.emit('shipsPlaced', { board: newBoard })
+      window.socket.emit('shipsPlaced', { board: newBoard })
     }
   }
 
