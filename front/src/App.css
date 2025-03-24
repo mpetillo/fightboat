@@ -1,14 +1,21 @@
 :root {
-  --ocean-blue: #1e3d59;
-  --wave-blue: #00a8ff;
+  --ocean-blue: #2a5a8a;
+  --wave-blue: #00b4ff;
   --ship-gray: #4a4a4a;
   --hit-red: #ff4d4d;
   --miss-blue: #b3d9ff;
   --grid-border: #2c3e50;
-  --text-light: #ecf0f1;
+  --text-light: #ffffff;
   --text-dark: #2c3e50;
   --container-width: 1200px;
   --header-height: 80px;
+}
+
+body {
+  background: linear-gradient(135deg, var(--ocean-blue), #3a7ab3);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
 .app {
@@ -17,10 +24,10 @@
   padding: 2rem;
   text-align: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--ocean-blue), #2c3e50);
   color: var(--text-light);
   display: flex;
   flex-direction: column;
+  background: transparent;
 }
 
 h1 {
@@ -31,15 +38,16 @@ h1 {
 }
 
 .menu, .waiting, .ready, .game {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   padding: 2.5rem;
   border-radius: 15px;
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   margin: 1rem auto;
   max-width: 800px;
   width: 100%;
   transition: transform 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .menu:hover, .waiting:hover, .ready:hover, .game:hover {
@@ -60,12 +68,13 @@ button {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(0, 180, 255, 0.3);
 }
 
 button:hover {
-  background: #0097e6;
+  background: #00c4ff;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 168, 255, 0.3);
+  box-shadow: 0 6px 20px rgba(0, 180, 255, 0.4);
 }
 
 button:disabled {
@@ -85,20 +94,22 @@ button:disabled {
 
 input {
   padding: 1rem;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   font-size: 1.1rem;
   width: 250px;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   color: var(--text-light);
   transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 input:focus {
   outline: none;
   border-color: var(--wave-blue);
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 180, 255, 0.2);
 }
 
 input::placeholder {
@@ -130,11 +141,13 @@ input::placeholder {
 .waiting strong {
   font-size: 2rem;
   color: var(--wave-blue);
-  text-shadow: 0 0 10px rgba(0, 168, 255, 0.5);
+  text-shadow: 0 0 15px rgba(0, 180, 255, 0.6);
   display: inline-block;
   padding: 0.5rem 1rem;
-  background: rgba(0, 168, 255, 0.1);
+  background: rgba(0, 180, 255, 0.15);
   border-radius: 8px;
+  border: 1px solid rgba(0, 180, 255, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 180, 255, 0.2);
 }
 
 /* Desktop-specific styles */
