@@ -1,20 +1,24 @@
 import { useState, useEffect } from 'react'
 import { io } from 'socket.io-client'
+import GameBoard from './components/GameBoard'
 import './App.css'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'https://battleship-q6f4.onrender.com'
 
 function App() {
   const [socket, setSocket] = useState(null)
-  const [gameState, setGameState] = useState('initial') // initial, new, join, waiting, ready
+  const [gameState, setGameState] = useState('initial')
   const [error, setError] = useState(null)
   const [partyCode, setPartyCode] = useState(null)
   const [joinCode, setJoinCode] = useState('')
-  const [shipCount, setShipCount] = useState(5)
+  const [isPlayerTurn, setIsPlayerTurn] = useState(false)
+  const [playerBoard, setPlayerBoard] = useState([])
+  const [opponentBoard, setOpponentBoard] = useState([])
   const [isConnected, setIsConnected] = useState(false)
+  const [isSetupPhase, setIsSetupPhase] = useState(false)
+  const [placedShips, setPlacedShips] = useState(0)
 
   useEffect(() => {
-    // Initialize socket connection
     const newSocket = io(SERVER_URL, {
       reconnection: true,
       reconnectionAttempts: 5,
@@ -48,6 +52,18 @@ function App() {
     newSocket.on('startRound', (data) => {
       if (data.status === "Success") {
         setGameState('playing')
+        setIsSetupPhase(true)
+        // Initialize empty boards
+        setPlayerBoard(Array(10).fill().map(() => Array(10).fill('empty')))
+        setOpponentBoard(Array(10).fill().map(() => Array(10).fill('empty')))
+      }
+    })
+
+    newSocket.on('turnUpdate', (data) => {
+      if (data.status === "Success") {
+        setIsPlayerTurn(data.isPlayerTurn)
+        if (data.playerBoard) setPlayerBoard(data.playerBoard)
+        if (data.opponentBoard) setOpponentBoard(data.opponentBoard)
       }
     })
 
@@ -76,9 +92,26 @@ function App() {
     }
   }
 
+  const handleCellClick = (row, col) => {
+    if (socket && isPlayerTurn) {
+      socket.emit('makeMove', { row, col })
+    }
+  }
+
+  const handleShipPlacement = (newBoard, shipName) => {
+    setPlayerBoard(newBoard)
+    setPlacedShips(prev => prev + 1)
+    
+    // If all ships are placed (5 ships), end setup phase
+    if (placedShips + 1 === 5) {
+      setIsSetupPhase(false)
+      socket.emit('shipsPlaced', { board: newBoard })
+    }
+  }
+
   return (
     <div className="app">
-      <h1>Fightboat</h1>
+      <h1>FightBoat</h1>
       
       {error && <div className="error">{error}</div>}
       
@@ -130,8 +163,30 @@ function App() {
 
       {gameState === 'playing' && (
         <div className="game">
-          <h2>Game Started!</h2>
-          {/* Game components will go here */}
+          <div className="game-status">
+            <h2>
+              {isSetupPhase 
+                ? `Place Your Ships (${placedShips}/5)`
+                : isPlayerTurn 
+                  ? "Your Turn!" 
+                  : "Opponent's Turn"}
+            </h2>
+          </div>
+          <div className="game-boards">
+            <GameBoard
+              isPlayerBoard={true}
+              board={playerBoard}
+              isSetupPhase={isSetupPhase}
+              onShipPlacement={handleShipPlacement}
+              onCellClick={() => {}}
+            />
+            <GameBoard
+              isPlayerBoard={false}
+              board={opponentBoard}
+              isSetupPhase={false}
+              onCellClick={handleCellClick}
+            />
+          </div>
         </div>
       )}
     </div>
