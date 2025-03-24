@@ -1,6 +1,6 @@
 :root {
-  --ocean-blue: #2a5a8a;
-  --wave-blue: #00b4ff;
+  --ocean-blue: #1e88e5;
+  --wave-blue: #00bcd4;
   --ship-gray: #4a4a4a;
   --hit-red: #ff4d4d;
   --miss-blue: #b3d9ff;
@@ -27,31 +27,34 @@ body {
   color: var(--text-light);
   display: flex;
   flex-direction: column;
-  background: transparent;
+  position: relative;
+  z-index: 1;
 }
 
 h1 {
   font-size: 3.5rem;
   margin-bottom: 2rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
   letter-spacing: 1px;
+  color: #ffffff;
 }
 
 .menu, .waiting, .ready, .game {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   padding: 2.5rem;
   border-radius: 15px;
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   margin: 1rem auto;
   max-width: 800px;
   width: 100%;
   transition: transform 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .menu:hover, .waiting:hover, .ready:hover, .game:hover {
   transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
 button {
@@ -68,13 +71,13 @@ button {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
-  box-shadow: 0 4px 15px rgba(0, 180, 255, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 188, 212, 0.4);
 }
 
 button:hover {
-  background: #00c4ff;
+  background: #00e5ff;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 180, 255, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 188, 212, 0.6);
 }
 
 button:disabled {
@@ -94,12 +97,12 @@ button:disabled {
 
 input {
   padding: 1rem;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   font-size: 1.1rem;
   width: 250px;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   color: var(--text-light);
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -108,12 +111,12 @@ input {
 input:focus {
   outline: none;
   border-color: var(--wave-blue);
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 20px rgba(0, 180, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 188, 212, 0.3);
 }
 
 input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .error {
@@ -124,6 +127,7 @@ input::placeholder {
   margin: 1rem auto;
   max-width: 600px;
   animation: shake 0.5s ease-in-out;
+  box-shadow: 0 4px 15px rgba(255, 77, 77, 0.3);
 }
 
 @keyframes shake {
@@ -136,18 +140,19 @@ input::placeholder {
   font-size: 1.3rem;
   margin: 1.5rem 0;
   line-height: 1.6;
+  color: #ffffff;
 }
 
 .waiting strong {
   font-size: 2rem;
   color: var(--wave-blue);
-  text-shadow: 0 0 15px rgba(0, 180, 255, 0.6);
+  text-shadow: 0 0 15px rgba(0, 188, 212, 0.6);
   display: inline-block;
   padding: 0.5rem 1rem;
-  background: rgba(0, 180, 255, 0.15);
+  background: rgba(0, 188, 212, 0.2);
   border-radius: 8px;
-  border: 1px solid rgba(0, 180, 255, 0.3);
-  box-shadow: 0 4px 15px rgba(0, 180, 255, 0.2);
+  border: 1px solid rgba(0, 188, 212, 0.4);
+  box-shadow: 0 4px 15px rgba(0, 188, 212, 0.3);
 }
 
 /* Desktop-specific styles */
