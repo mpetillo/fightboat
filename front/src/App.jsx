@@ -29,12 +29,14 @@ function App() {
 
     newSocket.on('connect', () => {
       console.log('Connected to server')
+      console.log('Socket ID:', newSocket.id)
       setIsConnected(true)
       setError(null)
     })
 
     newSocket.on('disconnect', () => {
       console.log('Disconnected from server')
+      console.log('Last socket ID:', newSocket.id)
       setIsConnected(false)
     })
 
@@ -43,10 +45,17 @@ function App() {
       setError('Failed to connect to server. Please check your connection and try again.')
     })
 
+    newSocket.on('error', (error) => {
+      console.error('Socket error:', error)
+      setError('Connection error occurred. Please try again.')
+    })
+
     newSocket.on('createParty', (data) => {
       console.log('Received createParty response:', data)
       if (data.status === "Success" && data.matchId) {
         console.log('Setting party code:', data.matchId)
+        console.log('Party code length:', data.matchId.length)
+        console.log('Party code characters:', [...data.matchId].map(c => c.charCodeAt(0)))
         setPartyCode(data.matchId)
         setGameState('waiting')
       } else {
@@ -57,6 +66,7 @@ function App() {
 
     newSocket.on('joinParty', (data) => {
       console.log('Received joinParty response:', data)
+      console.log('Current socket ID:', newSocket.id)
       if (data.status === "Success") {
         setGameState('ready')
         setError(null)
@@ -89,7 +99,10 @@ function App() {
 
     setSocket(newSocket)
 
-    return () => newSocket.close()
+    return () => {
+      console.log('Cleaning up socket connection')
+      newSocket.close()
+    }
   }, [])
 
   const handleCreateParty = () => {
@@ -103,13 +116,30 @@ function App() {
   }
 
   const handleJoinParty = () => {
-    if (socket && joinCode) {
-      const code = joinCode.trim() // Remove any whitespace
-      console.log('Attempting to join party with code:', code)
+    if (!socket) {
+      console.error('Socket not connected')
+      setError('Not connected to server. Please refresh the page.')
+      return
+    }
+
+    if (!joinCode) {
+      setError('Please enter a valid party code.')
+      return
+    }
+
+    const code = joinCode.trim()
+    console.log('Attempting to join party with code:', code)
+    console.log('Socket connected:', socket.connected)
+    console.log('Socket ID:', socket.id)
+    console.log('Code length:', code.length)
+    console.log('Code characters:', [...code].map(c => c.charCodeAt(0)))
+    
+    try {
       socket.emit('tryJoinParty', code)
       setGameState('join')
-    } else {
-      setError('Please enter a valid party code.')
+    } catch (error) {
+      console.error('Error emitting tryJoinParty:', error)
+      setError('Failed to join game. Please try again.')
     }
   }
 
