@@ -19,15 +19,28 @@
   box-sizing: border-box;
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
 html {
   scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
-  min-width: 320px;
   min-height: 100vh;
-  overflow-x: hidden;
+  background: linear-gradient(135deg, #1e88e5, #00bcd4);
+  background-attachment: fixed;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
 }
 
 /* Desktop-specific base styles */
@@ -41,9 +54,5 @@ body {
 @media (max-width: 768px) {
   :root {
     font-size: 14px;
-  }
-  
-  body {
-    -webkit-tap-highlight-color: transparent;
   }
 } 
