@@ -17,6 +17,7 @@ function App() {
   const [isConnected, setIsConnected] = useState(false)
   const [isSetupPhase, setIsSetupPhase] = useState(false)
   const [placedShips, setPlacedShips] = useState(0)
+  const [copyButtonText, setCopyButtonText] = useState('Copy Code')
 
   useEffect(() => {
     const newSocket = io(SERVER_URL, {
@@ -37,19 +38,28 @@ function App() {
     })
 
     newSocket.on('createParty', (data) => {
-      if (data.status === "Success") {
+      console.log('Received createParty response:', data)
+      if (data.status === "Success" && data.matchId) {
+        console.log('Setting party code:', data.matchId)
         setPartyCode(data.matchId)
         setGameState('waiting')
+      } else {
+        console.error('Invalid createParty response:', data)
+        setError('Failed to create game. Please try again.')
       }
     })
 
     newSocket.on('joinParty', (data) => {
+      console.log('Received joinParty response:', data)
       if (data.status === "Success") {
         setGameState('ready')
+      } else {
+        setError('Failed to join game. Please check the code and try again.')
       }
     })
 
     newSocket.on('startRound', (data) => {
+      console.log('Received startRound response:', data)
       if (data.status === "Success") {
         setGameState('playing')
         setIsSetupPhase(true)
@@ -74,15 +84,21 @@ function App() {
 
   const handleCreateParty = () => {
     if (socket) {
+      console.log('Emitting tryCreateParty')
       socket.emit('tryCreateParty')
       setGameState('new')
+    } else {
+      setError('Not connected to server. Please refresh the page.')
     }
   }
 
   const handleJoinParty = () => {
     if (socket && joinCode) {
+      console.log('Emitting tryJoinParty with code:', joinCode)
       socket.emit('tryJoinParty', joinCode.toUpperCase())
       setGameState('join')
+    } else {
+      setError('Please enter a valid party code.')
     }
   }
 
@@ -109,6 +125,25 @@ function App() {
     }
   }
 
+  const handleCopyCode = async () => {
+    if (partyCode) {
+      try {
+        await navigator.clipboard.writeText(partyCode)
+        setCopyButtonText('Copied!')
+        setTimeout(() => setCopyButtonText('Copy Code'), 2000)
+      } catch (err) {
+        console.error('Failed to copy code:', err)
+        setError('Failed to copy code. Please try again.')
+      }
+    } else {
+      setError('No party code available. Please create a new game.')
+    }
+  }
+
+  // Debug render for party code
+  console.log('Current party code:', partyCode)
+  console.log('Current game state:', gameState)
+
   return (
     <div className="app">
       <h1>FightBoat</h1>
@@ -122,7 +157,7 @@ function App() {
             <input
               type="text"
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               placeholder="Enter Party Code"
               maxLength={6}
             />
@@ -134,7 +169,17 @@ function App() {
       {gameState === 'new' && (
         <div className="waiting">
           <h2>Game Created!</h2>
-          <p>Share this code with your opponent: <strong>{partyCode}</strong></p>
+          {partyCode ? (
+            <div className="party-code">
+              <h3>Share this code with your opponent:</h3>
+              <div className="code">{partyCode}</div>
+              <button className="copy-button" onClick={handleCopyCode}>
+                {copyButtonText}
+              </button>
+            </div>
+          ) : (
+            <p>Generating party code...</p>
+          )}
           <p>Waiting for opponent to join...</p>
         </div>
       )}
@@ -149,7 +194,17 @@ function App() {
       {gameState === 'waiting' && (
         <div className="waiting">
           <h2>Waiting for Opponent</h2>
-          <p>Your party code: <strong>{partyCode}</strong></p>
+          {partyCode ? (
+            <div className="party-code">
+              <h3>Your party code:</h3>
+              <div className="code">{partyCode}</div>
+              <button className="copy-button" onClick={handleCopyCode}>
+                {copyButtonText}
+              </button>
+            </div>
+          ) : (
+            <p>No party code available. Please create a new game.</p>
+          )}
           <p>Waiting for opponent to join...</p>
         </div>
       )}
