@@ -1,6 +1,9 @@
 import { io } from 'socket.io-client'
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'https://battleship-q6f4.onrender.com'
+// Use the current hostname for the server URL
+const SERVER_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000'
+  : 'https://battleship-q6f4.onrender.com'
 
 // Create socket connection with error handling
 let socket
