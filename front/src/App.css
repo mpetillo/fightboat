@@ -107,11 +107,12 @@ input {
   border-radius: 8px;
   font-size: 1.1rem;
   width: 250px;
-  text-transform: uppercase;
   background: rgba(255, 255, 255, 0.2);
   color: var(--text-light);
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  font-family: monospace;
+  letter-spacing: 1px;
 }
 
 input:focus {
@@ -123,6 +124,7 @@ input:focus {
 
 input::placeholder {
   color: rgba(255, 255, 255, 0.6);
+  text-transform: none;
 }
 
 .error {
@@ -303,14 +305,15 @@ input::placeholder {
 .party-code .code {
   font-size: 2.5rem;
   font-weight: bold;
-  color: var(--sea-green);
+  color: #000000;
   letter-spacing: 4px;
-  text-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
-  background: rgba(255, 255, 255, 0.1);
+  text-shadow: none;
+  background: rgba(255, 255, 255, 0.9);
   padding: 1rem;
   border-radius: 8px;
   margin: 0;
   font-family: monospace;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .copy-button {
