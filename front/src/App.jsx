@@ -30,11 +30,17 @@ function App() {
     newSocket.on('connect', () => {
       console.log('Connected to server')
       setIsConnected(true)
+      setError(null)
     })
 
     newSocket.on('disconnect', () => {
       console.log('Disconnected from server')
       setIsConnected(false)
+    })
+
+    newSocket.on('connect_error', (error) => {
+      console.error('Connection error:', error)
+      setError('Failed to connect to server. Please check your connection and try again.')
     })
 
     newSocket.on('createParty', (data) => {
@@ -53,8 +59,12 @@ function App() {
       console.log('Received joinParty response:', data)
       if (data.status === "Success") {
         setGameState('ready')
+        setError(null)
       } else {
-        setError('Failed to join game. Please check the code and try again.')
+        console.error('Join party failed:', data)
+        setError(data.reason || 'Failed to join game. Please check the code and try again.')
+        setGameState('initial')
+        setJoinCode('') // Clear the join code on failure
       }
     })
 
@@ -94,8 +104,9 @@ function App() {
 
   const handleJoinParty = () => {
     if (socket && joinCode) {
-      console.log('Emitting tryJoinParty with code:', joinCode)
-      socket.emit('tryJoinParty', joinCode.toUpperCase())
+      const code = joinCode.trim() // Remove any whitespace
+      console.log('Attempting to join party with code:', code)
+      socket.emit('tryJoinParty', code)
       setGameState('join')
     } else {
       setError('Please enter a valid party code.')
@@ -157,9 +168,10 @@ function App() {
             <input
               type="text"
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
+              onChange={(e) => setJoinCode(e.target.value.trim())}
               placeholder="Enter Party Code"
               maxLength={6}
+              autoComplete="off"
             />
             <button onClick={handleJoinParty}>Join Game</button>
           </div>
