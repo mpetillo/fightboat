@@ -1,5 +1,3 @@
-import { io } from 'socket.io-client'
-
 // Use the current hostname for the server URL
 const SERVER_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:3000'
@@ -9,7 +7,8 @@ const SERVER_URL = window.location.hostname === 'localhost'
 let socket
 
 try {
-  socket = io(SERVER_URL, {
+  // Use the global io from the CDN
+  socket = window.io(SERVER_URL, {
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
